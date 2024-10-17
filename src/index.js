@@ -12,6 +12,5 @@ function onPageLoad(arg1, arg2) {
 }
 
 // Assign the function to window.onload
-window.onload = onPageLoad;
 
-document.onload = onPageLoad;
+window.onload = onPageLoad;
