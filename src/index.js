@@ -56,6 +56,7 @@ const PopulationData = {
   populationData: null, // Cache for population data
   municipalityCodes: null, // Cache for municipality codes
   chart: null, // Reference to the chart instance
+  currentMunicipality: "SSS", // Cache for the current municipality
 
   /**
    * Fetches municipality codes from the API.
@@ -214,7 +215,48 @@ const PopulationData = {
       data = await this.fetchData(alueCode);
     }
     if (data) {
+      this.currentMunicipality = alueCode; // Update the current municipality
       this.initChart(data);
+    }
+  },
+  // adds data prediction to chart
+  async addDataPrediction() {
+    const cachedData = localStorage.getItem(`populationData-${this.currentMunicipality}`);
+    let data;
+    if (cachedData) {
+      data = JSON.parse(cachedData);
+    } else {
+      data = await PopulationData.fetchData(this.currentMunicipality);
+      localStorage.setItem(`populationData-${this.currentMunicipality}`, JSON.stringify(data));
+    }
+
+    if (data?.dimension?.["Vuosi"]?.category?.label && data?.value) {
+      const years = Object.keys(data.dimension["Vuosi"].category.label);
+      const population = data.value;
+
+      // Add a predicted data point (e.g., for the next year)
+      const lastYear = parseInt(years[years.length - 1]);
+      const predictedYear = (lastYear + 1).toString();
+      const predictedPopulation = calculatePrediction(population);
+      console.log(
+        `Predicted population for ${predictedYear}: ${predictedPopulation}`
+      );
+
+      years.push(predictedYear);
+      population.push(predictedPopulation);
+
+      // Draw the new chart with the predicted data point
+      this.chart.update({
+        labels: [...years, predictedYear],
+        datasets: [
+          {
+            name: "Population",
+            values: [...population, predictedPopulation],
+          },
+        ],
+      });
+    } else {
+      console.error("Data format is incorrect or missing required fields.");
     }
   },
 };
@@ -237,7 +279,17 @@ function debounce(func, wait) {
   };
 }
 
-// Function to handle user input and fetch data for the specified municipality
+/**
+ * Handles user input and fetches data for the specified municipality.
+ *
+ * This function retrieves the value from the input field, validates it, and then
+ * fetches the corresponding municipality code. If the code is found, it fetches
+ * and displays the data for that municipality. If any errors occur during the
+ * process, appropriate error messages are logged and optionally displayed to the user.
+ *
+ * @async
+ * @function handleFetchMunicipalityData
+ */
 async function handleFetchMunicipalityData() {
   const municipalityInput = document.getElementById("input-area");
   const municipality = municipalityInput.value.trim();
@@ -267,13 +319,29 @@ async function handleFetchMunicipalityData() {
   }
 }
 
+/**
+ * Calculates the predicted next value in a series based on the average change between consecutive values.
+ *
+ * @param {number[]} values - An array of numerical values representing the series.
+ * @returns {number} The predicted next value in the series.
+ */
+function calculatePrediction(values) {
+  const delta = values.slice(1).map((value, index) => value - values[index]);
+  const meanDelta = delta.reduce((acc, curr) => acc + curr, 0) / delta.length;
+  const newValue = values[values.length - 1] + meanDelta;
+  return newValue;
+}
 document
   .getElementById("submit-data")
   .addEventListener("click", debounce(handleFetchMunicipalityData, 300));
 
-document.getElementById("input-area").addEventListener("keydown", (event) => { 
+document.getElementById("input-area").addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
     document.getElementById("submit-data").click();
   }
 });
+
+document
+  .getElementById("add-data")
+  .addEventListener("click", () => PopulationData.addDataPrediction());

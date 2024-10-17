@@ -2,11 +2,11 @@
   "name": "week6",
   "version": "1.0.0",
   "description": "A web application to visualize population growth in a municipality in Finland.",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "parcel index.html",
-    "build": "parcel build index.html --out-dir dist --public-url ./",
+    "start": "parcel src/index.html",
+    "build": "parcel build src/index.html",
     "commit": "cz"
   },
   "keywords": [],
