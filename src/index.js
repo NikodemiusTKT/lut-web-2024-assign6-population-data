@@ -38,7 +38,7 @@ const PopulationData = {
         code: "Alue",
         selection: {
           filter: "item",
-          values: ["SSS"], // Assuming "SSS" is the code for the whole country
+          values: ["SSS"], // This will be dynamically set
         },
       },
       {
@@ -53,29 +53,72 @@ const PopulationData = {
       format: "json-stat2",
     },
   },
+  populationData: null, // Cache for population data
+  municipalityCodes: null, // Cache for municipality codes
+  chart: null, // Reference to the chart instance
+
+  /**
+   * Fetches municipality codes from the API.
+   *
+   * @async
+   * @function fetchMunicipalityCodes
+   * @returns {Promise<Array>} A promise that resolves with the municipality codes.
+   */
+  async fetchMunicipalityCodes() {
+    if (this.municipalityCodes) {
+      return this.municipalityCodes;
+    }
+    try {
+      const response = await fetch(this.URL);
+      if (!response.ok) {
+        throw new Error("HTTP error " + response.status);
+      }
+      const data = await response.json();
+      const names = Object.values(data.variables[1].valueTexts);
+      const codes = Object.values(data.variables[1].values);
+      this.municipalityCodes = codes.map((code, index) => ({
+        label: names[index],
+        value: code,
+      }));
+      localStorage.setItem(
+        "municipalityCodes",
+        JSON.stringify(this.municipalityCodes)
+      ); // Cache in local storage
+      return this.municipalityCodes;
+    } catch (error) {
+      console.error("Error fetching municipality codes:", error);
+    }
+  },
+
   /**
    * Asynchronously fetches data from a specified URL using a POST request.
    *
    * @async
    * @function fetchData
+   * @param {string} alueCode - The code for the municipality.
    * @throws Will throw an error if the HTTP response is not ok.
    * @returns {Promise<Object>} A promise that resolves with the fetched data.
    */
-  async fetchData() {
+  async fetchData(alueCode = "SSS") {
+    const query = { ...this.QUERY };
+    query.query.find((q) => q.code === "Alue").selection.values = [alueCode];
+
     const options = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify(this.QUERY),
+      body: JSON.stringify(query),
     };
+
     try {
       const response = await fetch(this.URL, options);
       if (!response.ok) {
         throw new Error("HTTP error " + response.status);
       }
       const data = await response.json();
+      localStorage.setItem(`populationData-${alueCode}`, JSON.stringify(data)); // Cache in local storage
       return data;
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -92,12 +135,8 @@ const PopulationData = {
     if (data?.dimension?.["Vuosi"]?.category?.label && data?.value) {
       const years = Object.keys(data.dimension["Vuosi"].category.label);
       const population = data.value;
-      const chart = new frappe.Chart(document.getElementById("chart"), {
-        title: "Population in Finland",
-        height: 450,
-        type: "line",
-        colors: ["#eb5146"],
-        data: {
+      if (this.chart) {
+        this.chart.update({
           labels: years,
           datasets: [
             {
@@ -105,8 +144,24 @@ const PopulationData = {
               values: population,
             },
           ],
-        },
-      });
+        });
+      } else {
+        this.chart = new frappe.Chart(document.getElementById("chart"), {
+          title: "Population growth in whole country",
+          height: 450,
+          type: "line",
+          colors: ["#eb5146"],
+          data: {
+            labels: years,
+            datasets: [
+              {
+                name: "Population",
+                values: population,
+              },
+            ],
+          },
+        });
+      }
     } else {
       console.error("Data format is incorrect or missing required fields.");
     }
@@ -119,13 +174,106 @@ const PopulationData = {
    * @function onPageLoad
    */
   async onPageLoad() {
-    const data = await this.fetchData();
+    try {
+      const populationData = localStorage.getItem("populationData");
+      // Fetch and cache municipality codes
+      const cachedCodes = localStorage.getItem("municipalityCodes");
+      if (cachedCodes) {
+        this.municipalityCodes = JSON.parse(cachedCodes);
+      } else {
+        await this.fetchMunicipalityCodes();
+      }
+      // Fetch and display data for the whole country
+      const cachedPopulationData = localStorage.getItem("populationData-SSS");
+      let data;
+      if (cachedPopulationData) {
+        data = JSON.parse(cachedPopulationData);
+      } else {
+        data = await this.fetchData();
+      }
+      if (data) {
+        this.initChart(data);
+      }
+    } catch (error) {
+      console.error("Error on page load:", error);
+    }
+  },
+  /**
+   * Fetches population data for a specific municipality and updates the chart.
+   *
+   * @async
+   * @function fetchAndDisplayMunicipalityData
+   * @param {string} alueCode - The code for the municipality.
+   */
+  async fetchAndDisplayMunicipalityData(alueCode) {
+    const cachedData = localStorage.getItem(`populationData-${alueCode}`);
+    let data;
+    if (cachedData) {
+      data = JSON.parse(cachedData);
+    } else {
+      data = await this.fetchData(alueCode);
+    }
     if (data) {
       this.initChart(data);
     }
-  }
+  },
 };
-
 
 // Assign the function to window.onload
 window.onload = () => PopulationData.onPageLoad();
+
+/**
+ * Debounce function to limit the rate at which a function can fire.
+ *
+ * @param {Function} func - The function to debounce.
+ * @param {number} wait - The number of milliseconds to wait before invoking the function.
+ * @returns {Function} - The debounced function.
+ */
+function debounce(func, wait) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+// Function to handle user input and fetch data for the specified municipality
+async function handleFetchMunicipalityData() {
+  const municipalityInput = document.getElementById("input-area");
+  const municipality = municipalityInput.value.trim();
+  if (!municipality) {
+    console.error("Municipality input is empty.");
+    // Optionally, display an error message to the user
+    alert("Municipality input is empty.");
+    return;
+  }
+  try {
+    const codes = await PopulationData.fetchMunicipalityCodes();
+    const alueCode = codes.find(
+      (code) => code.label.toLowerCase() === municipality.toLowerCase()
+    );
+
+    if (alueCode) {
+      PopulationData.fetchAndDisplayMunicipalityData(alueCode.value);
+    } else {
+      console.error(`Municipality code for "${municipality}" not found.`);
+      // Optionally, display an error message to the user
+      alert(`Municipality code for "${municipality}" not found.`);
+    }
+  } catch (error) {
+    console.error("Error fetching municipality codes:", error);
+    // Optionally, display an error message to the user
+    alert("Error fetching municipality codes.");
+  }
+}
+
+document
+  .getElementById("submit-data")
+  .addEventListener("click", debounce(handleFetchMunicipalityData, 300));
+
+document.getElementById("input-area").addEventListener("keydown", (event) => { 
+  if (event.key === "Enter") {
+    event.preventDefault();
+    document.getElementById("submit-data").click();
+  }
+});
