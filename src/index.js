@@ -345,3 +345,8 @@ document.getElementById("input-area").addEventListener("keydown", (event) => {
 document
   .getElementById("add-data")
   .addEventListener("click", () => PopulationData.addDataPrediction());
+
+document.getElementById("navigation").addEventListener("click", (event) => {
+  event.preventDefault();
+  window.location.href = "newchart.html";
+});
