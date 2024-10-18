@@ -47,7 +47,9 @@ const PopulationData = {
 
   initChart(years, population) {
     if (years && population) {
-      const chartData = createChartData(years, population);
+      const chartData = createChartData(years, [
+        { name: "Population", values: population },
+      ]);
       this.chart = renderChart(
         this.chartContainer || document.getElementById("chart"),
         this.chart,
@@ -172,18 +174,6 @@ const PopulationData = {
       "currentMunicipality",
       JSON.stringify(municipalityData),
     );
-  },
-
-  updateDataPoint(label, valueFromEachDataset, index = null) {
-    if (this.chart) {
-      if (index !== null) {
-        this.chart.addDataPoint(label, valueFromEachDataset, index);
-      } else {
-        this.chart.addDataPoint(label, valueFromEachDataset);
-      }
-    } else {
-      this.logError("Chart instance not found.");
-    }
   },
 };
 

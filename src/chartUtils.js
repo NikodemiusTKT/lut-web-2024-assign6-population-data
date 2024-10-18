@@ -1,16 +1,21 @@
-export function createChartData(years, population) {
+export function createChartData(years, datasets) {
   return {
     labels: years,
-    datasets: [
-      {
-        name: "Population",
-        values: population,
-      },
-    ],
+    datasets: datasets.map(({ name, values }) => ({
+      name,
+      values,
+    })),
   };
 }
 
-export function renderChart(chartContainer, chart, chartData, title) {
+export function renderChart(
+  chartContainer,
+  chart,
+  chartData,
+  title,
+  type = "line",
+  colors = ["#eb5146"],
+) {
   if (!chartContainer) {
     console.error("Chart container not found.");
     return;
@@ -20,8 +25,8 @@ export function renderChart(chartContainer, chart, chartData, title) {
     chart = new frappe.Chart(chartContainer, {
       title,
       height: 450,
-      type: "line",
-      colors: ["#eb5146"],
+      type,
+      colors,
       data: chartData,
     });
   } else {

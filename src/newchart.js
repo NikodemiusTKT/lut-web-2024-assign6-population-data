@@ -1,4 +1,9 @@
 import { fetchDataWithCache } from "./dataUtils.js";
+import {
+  createChartData,
+  renderChart,
+  validateChartData,
+} from "./chartUtils.js";
 
 const BirthsDeathsData = {
   currentMunicipality: JSON.parse(
@@ -25,10 +30,7 @@ const BirthsDeathsData = {
   },
 
   async fetchData() {
-    const combinedData = await fetchDataWithCache(
-      this.currentMunicipality.code,
-    );
-    return combinedData;
+    return await fetchDataWithCache(this.currentMunicipality.code);
   },
 
   initChart(birthData, deathData) {
@@ -40,45 +42,18 @@ const BirthsDeathsData = {
       return;
     }
 
-    const chartData = this.createChartData(years, births, deaths);
-    this.renderChart(chartData);
-  },
-
-  createChartData(years, births, deaths) {
-    return {
-      labels: years,
-      datasets: [
-        {
-          name: "Births",
-          values: births,
-        },
-        {
-          name: "Deaths",
-          values: deaths,
-        },
-      ],
-    };
-  },
-
-  renderChart(chartData) {
-    if (!this.chartContainer) {
-      this.chartContainer = document.getElementById("chart");
-    }
-    if (!this.chartContainer) {
-      console.error("Chart container not found.");
-      return;
-    }
-    if (!this.chart) {
-      this.chart = new frappe.Chart(this.chartContainer, {
-        title: `Births and Deaths in ${this.currentMunicipality.name}`,
-        height: 450,
-        type: "bar",
-        colors: ["#63d0ff", "#363636"],
-        data: chartData,
-      });
-    } else {
-      this.chart.update(chartData);
-    }
+    const chartData = createChartData(years, [
+      { name: "Births", values: births },
+      { name: "Deaths", values: deaths },
+    ]);
+    this.chart = renderChart(
+      this.chartContainer || document.getElementById("chart"),
+      this.chart,
+      chartData,
+      `Births and Deaths in ${this.currentMunicipality.name}`,
+      "bar",
+      ["#63d0ff", "#363636"],
+    );
   },
 
   handleStorageChange(event) {
