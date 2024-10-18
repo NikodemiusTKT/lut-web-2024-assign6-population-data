@@ -2,7 +2,6 @@
   "name": "week6",
   "version": "1.0.0",
   "description": "A web application to visualize population growth in a municipality in Finland.",
-  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "parcel src/index.html src/newchart.html",
@@ -10,7 +9,7 @@
     "commit": "cz"
   },
   "keywords": [],
-  "author": "",
+  "author": "Teemu Tanninen",
   "license": "MIT",
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
