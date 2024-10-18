@@ -153,6 +153,7 @@ function debounce(func, wait) {
 
 export {
   fetchDataWithCache,
+  extractData,
   fetchMunicipalityCodes,
   calculatePrediction,
   debounce,

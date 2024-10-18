@@ -1,9 +1,5 @@
-import { fetchDataWithCache } from "./dataUtils.js";
-import {
-  createChartData,
-  renderChart,
-  validateChartData,
-} from "./chartUtils.js";
+import { fetchDataWithCache } from "./dataModule.js";
+import { createChartData, renderChart } from "./chartModule.js";
 
 const BirthsDeathsData = {
   currentMunicipality: JSON.parse(

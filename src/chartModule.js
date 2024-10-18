@@ -1,4 +1,4 @@
-export function createChartData(years, datasets) {
+function createChartData(years, datasets) {
   return {
     labels: years,
     datasets: datasets.map(({ name, values }) => ({
@@ -8,7 +8,7 @@ export function createChartData(years, datasets) {
   };
 }
 
-export function renderChart(
+function renderChart(
   chartContainer,
   chart,
   chartData,
@@ -36,7 +36,7 @@ export function renderChart(
   return chart;
 }
 
-export function validateChartData(chartData) {
+function validateChartData(chartData) {
   const { labels, datasets } = chartData;
   if (!labels || !datasets) return false;
 
@@ -53,3 +53,4 @@ export function validateChartData(chartData) {
 
   return true;
 }
+export { createChartData, renderChart, validateChartData };

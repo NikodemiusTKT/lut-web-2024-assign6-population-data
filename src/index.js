@@ -1,14 +1,10 @@
 import {
   fetchDataWithCache,
   fetchMunicipalityCodes,
-  debounce,
   calculatePrediction,
-} from "./dataUtils.js";
-import {
-  createChartData,
-  renderChart,
-  validateChartData,
-} from "./chartUtils.js";
+} from "./dataModule.js";
+
+import { renderChart, createChartData } from "./chartModule.js";
 
 const DEFAULT_MUNICIPALITY = {
   code: "SSS",
