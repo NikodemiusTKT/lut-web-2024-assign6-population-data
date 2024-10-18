@@ -1,9 +1,4 @@
-import {
-  fetchDataWithCache,
-  fetchMunicipalityCodes,
-  calculatePrediction,
-} from "./dataModule.js";
-
+import dataManager from "./DataManager.js";
 import { renderChart, createChartData } from "./chartModule.js";
 
 const DEFAULT_MUNICIPALITY = {
@@ -30,8 +25,8 @@ const PopulationData = {
   },
 
   async fetchAndInitData() {
-    const combinedData = await fetchDataWithCache(
-      this.currentMunicipality.code,
+    const combinedData = await dataManager.fetchDataWithCache(
+      this.currentMunicipality.code
     );
     if (combinedData) {
       const { populationData } = combinedData;
@@ -50,7 +45,7 @@ const PopulationData = {
         this.chartContainer || document.getElementById("chart"),
         this.chart,
         chartData,
-        `Population growth in ${this.currentMunicipality.name}`,
+        `Population growth in ${this.currentMunicipality.name}`
       );
     } else {
       this.logError("Data format is incorrect or missing required fields.");
@@ -58,8 +53,8 @@ const PopulationData = {
   },
 
   async addDataPrediction() {
-    const combinedData = await fetchDataWithCache(
-      this.currentMunicipality.code,
+    const combinedData = await dataManager.fetchDataWithCache(
+      this.currentMunicipality.code
     );
     if (!combinedData) {
       this.logError("No cached data found.");
@@ -80,7 +75,7 @@ const PopulationData = {
     let { years, values: population } = populationData;
     const lastYear = parseInt(years[years.length - 1]);
     const predictedYear = (lastYear + 1).toString();
-    const predictedPopulation = calculatePrediction(population);
+    const predictedPopulation = dataManager.calculatePrediction(population);
 
     if (predictedYear && !isNaN(predictedPopulation)) {
       years.push(predictedYear);
@@ -134,7 +129,7 @@ const PopulationData = {
     }
 
     try {
-      const codes = await fetchMunicipalityCodes();
+      const codes = await dataManager.fetchMunicipalityCodes();
       const alueCode = this.findMunicipalityCode(codes, municipality);
 
       if (alueCode) {
@@ -150,7 +145,7 @@ const PopulationData = {
 
   findMunicipalityCode(codes, municipality) {
     return codes.find(
-      (code) => code.label.toLowerCase() === municipality.toLowerCase(),
+      (code) => code.label.toLowerCase() === municipality.toLowerCase()
     );
   },
 
@@ -168,16 +163,24 @@ const PopulationData = {
     this.currentMunicipality = municipalityData;
     localStorage.setItem(
       "currentMunicipality",
-      JSON.stringify(municipalityData),
+      JSON.stringify(municipalityData)
     );
   },
 };
+
+function debounce(func, wait) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
 
 window.onload = () => PopulationData.onPageLoad();
 
 document.getElementById("submit-data").addEventListener(
   "click",
-  debounce(() => PopulationData.handleFetchMunicipalityData(), 300),
+  debounce(() => PopulationData.handleFetchMunicipalityData(), 300)
 );
 
 document.getElementById("input-area").addEventListener("keydown", (event) => {
