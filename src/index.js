@@ -4,6 +4,11 @@ import {
   debounce,
   calculatePrediction,
 } from "./dataUtils.js";
+import {
+  createChartData,
+  renderChart,
+  validateChartData,
+} from "./chartUtils.js";
 
 const DEFAULT_MUNICIPALITY = {
   code: "SSS",
@@ -33,7 +38,7 @@ const PopulationData = {
       this.currentMunicipality.code,
     );
     if (combinedData) {
-      const { populationData, birthData, deathData } = combinedData;
+      const { populationData } = combinedData;
       this.initChart(populationData.years, populationData.values);
       return combinedData;
     }
@@ -42,68 +47,16 @@ const PopulationData = {
 
   initChart(years, population) {
     if (years && population) {
-      const chartData = this.createChartData(years, population);
-      this.renderChart(chartData);
+      const chartData = createChartData(years, population);
+      this.chart = renderChart(
+        this.chartContainer || document.getElementById("chart"),
+        this.chart,
+        chartData,
+        `Population growth in ${this.currentMunicipality.name}`,
+      );
     } else {
       this.logError("Data format is incorrect or missing required fields.");
     }
-  },
-
-  createChartData(years, population) {
-    return {
-      labels: years,
-      datasets: [
-        {
-          name: "Population",
-          values: population,
-        },
-      ],
-    };
-  },
-
-  renderChart(chartData) {
-    this.chartContainer =
-      this.chartContainer || document.getElementById("chart");
-
-    if (!this.chartContainer) {
-      this.logError("Chart container not found.");
-      return;
-    }
-
-    if (!this.validateChartData(chartData)) {
-      this.logError("Invalid chart data.");
-      return;
-    }
-
-    if (this.chart) {
-      this.chart.update(chartData);
-    } else {
-      this.chart = new frappe.Chart(this.chartContainer, {
-        title: `Population growth in ${this.currentMunicipality.name}`,
-        height: 450,
-        type: "line",
-        colors: ["#eb5146"],
-        data: chartData,
-      });
-    }
-  },
-
-  validateChartData(chartData) {
-    const { labels, datasets } = chartData;
-    if (!labels || !datasets) return false;
-
-    for (const label of labels) {
-      if (label === undefined || label === null) return false;
-    }
-
-    for (const dataset of datasets) {
-      if (!dataset.values) return false;
-      for (const value of dataset.values) {
-        if (value === undefined || value === null) return false;
-      }
-    }
-
-    return true;
   },
 
   async addDataPrediction() {
@@ -127,7 +80,6 @@ const PopulationData = {
 
   addPredictedData(populationData) {
     let { years, values: population } = populationData;
-    console.log("predicting data", years, population);
     const lastYear = parseInt(years[years.length - 1]);
     const predictedYear = (lastYear + 1).toString();
     const predictedPopulation = calculatePrediction(population);
