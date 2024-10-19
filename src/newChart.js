@@ -3,11 +3,13 @@ import stateManager from "./StateManager.js";
 import { createChartData, renderChart } from "./chartModule.js";
 
 class BirthsDeathsData {
-  constructor() {
+  constructor(dataFetcher, stateManager) {
     if (BirthsDeathsData.instance) {
       console.log("Instance already exists");
       return BirthsDeathsData.instance;
     }
+    this.dataFetcher = dataFetcher;
+    this.stateManager = stateManager;
     this.chart = null;
     this.chartContainer = null;
     this.currentMunicipality = stateManager.getCurrentMunicipality();
@@ -17,18 +19,20 @@ class BirthsDeathsData {
 
   async onPageLoad() {
     try {
-      const combinedData = await dataFetcher.fetchDataWithCache(
-        this.currentMunicipality.value
-      );
+      const combinedData = await this.fetchDataWithCache();
       if (combinedData) {
-        const { birthData, deathData } = combinedData;
-        this.initChart(birthData, deathData);
+        this.update(combinedData);
       } else {
         console.error("No data found in localStorage.");
       }
     } catch (error) {
       console.error("Error on page load:", error);
     }
+  }
+  async fetchDataWithCache() {
+    return await this.dataFetcher.fetchDataWithCache(
+      this.currentMunicipality.value
+    );
   }
 
   update(data) {
@@ -55,7 +59,7 @@ class BirthsDeathsData {
       chartData,
       `Births and Deaths in ${this.currentMunicipality.label}`,
       "bar",
-      ["#63d0ff", "#363636"],
+      ["#63d0ff", "#363636"]
     );
   }
 
@@ -72,5 +76,5 @@ export default birthsDeathsDataInstance;
 
 window.onload = () => birthsDeathsDataInstance.onPageLoad();
 window.addEventListener("storage", (event) =>
-  birthsDeathsDataInstance.handleStorageChange(event),
+  birthsDeathsDataInstance.handleStorageChange(event)
 );
