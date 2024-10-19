@@ -1,19 +1,25 @@
-import { fetchDataWithCache } from "./dataModule.js";
+import dataFetcher from "./DataFetcher.js";
+import stateManager from "./StateManager.js";
 import { createChartData, renderChart } from "./chartModule.js";
 
-const BirthsDeathsData = {
-  currentMunicipality: JSON.parse(
-    localStorage.getItem("currentMunicipality"),
-  ) || {
-    code: "SSS",
-    name: "Finland",
-  },
-  chart: null,
-  chartContainer: null,
+class BirthsDeathsData {
+  constructor() {
+    if (BirthsDeathsData.instance) {
+      console.log("Instance already exists");
+      return BirthsDeathsData.instance;
+    }
+    this.chart = null;
+    this.chartContainer = null;
+    this.currentMunicipality = stateManager.getCurrentMunicipality();
+    stateManager.subscribe(this);
+    BirthsDeathsData.instance = this;
+  }
 
   async onPageLoad() {
     try {
-      const combinedData = await this.fetchData();
+      const combinedData = await dataFetcher.fetchDataWithCache(
+        this.currentMunicipality.value
+      );
       if (combinedData) {
         const { birthData, deathData } = combinedData;
         this.initChart(birthData, deathData);
@@ -23,11 +29,12 @@ const BirthsDeathsData = {
     } catch (error) {
       console.error("Error on page load:", error);
     }
-  },
+  }
 
-  async fetchData() {
-    return await fetchDataWithCache(this.currentMunicipality.code);
-  },
+  update(data) {
+    const { birthData, deathData } = data;
+    this.initChart(birthData, deathData);
+  }
 
   initChart(birthData, deathData) {
     const { years, values: births } = birthData;
@@ -46,21 +53,24 @@ const BirthsDeathsData = {
       this.chartContainer || document.getElementById("chart"),
       this.chart,
       chartData,
-      `Births and Deaths in ${this.currentMunicipality.name}`,
+      `Births and Deaths in ${this.currentMunicipality.label}`,
       "bar",
       ["#63d0ff", "#363636"],
     );
-  },
+  }
 
   handleStorageChange(event) {
     if (event.key === "currentMunicipality") {
       this.currentMunicipality = JSON.parse(event.newValue);
       this.onPageLoad();
     }
-  },
-};
+  }
+}
 
-window.onload = () => BirthsDeathsData.onPageLoad();
+const birthsDeathsDataInstance = new BirthsDeathsData();
+export default birthsDeathsDataInstance;
+
+window.onload = () => birthsDeathsDataInstance.onPageLoad();
 window.addEventListener("storage", (event) =>
-  BirthsDeathsData.handleStorageChange(event),
+  birthsDeathsDataInstance.handleStorageChange(event),
 );
